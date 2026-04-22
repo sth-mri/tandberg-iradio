@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tandberg iRadio Station Manager</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #ffffff; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h1 { text-align: center; color: #ff4757; }
+        
+        .settings-panel { background: #2f3542; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .settings-panel input { width: calc(50% - 22px); padding: 8px; margin: 5px; background: #121212; border: 1px solid #57606f; color: white; border-radius: 4px; }
+        
+        .tabs { display: flex; justify-content: center; margin-bottom: 20px; }
+        .tab-btn { background: #2f3542; color: white; border: none; padding: 10px 30px; margin: 0 5px; cursor: pointer; border-radius: 4px; font-size: 16px; font-weight: bold; }
+        .tab-btn.active { background: #ff4757; }
+        
+        .station-list { list-style: none; padding: 0; }
+        .station-item { background: #2f3542; margin-bottom: 10px; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .station-info { flex-grow: 1; }
+        .station-name { font-size: 18px; font-weight: bold; color: #1e90ff; margin: 0 0 5px 0; }
+        .station-url { font-size: 12px; color: #a4b0be; margin: 0; word-break: break-all; }
+        
+        .controls button { background: #57606f; color: white; border: none; padding: 8px 12px; margin-left: 5px; cursor: pointer; border-radius: 4px; }
+        .controls button:hover { background: #747d8c; }
+        .controls .btn-delete { background: #ff4757; }
+        .controls .btn-delete:hover { background: #ff6b81; }
+
+        .add-form { display: flex; gap: 10px; margin-top: 20px; }
+        .add-form input { flex-grow: 1; padding: 10px; background: #121212; border: 1px solid #57606f; color: white; border-radius: 4px; }
+        .add-form button { background: #2ed573; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+
+        .save-btn { display: block; width: 100%; background: #1e90ff; color: white; border: none; padding: 15px; font-size: 18px; font-weight: bold; margin-top: 30px; cursor: pointer; border-radius: 6px; }
+        .save-btn:hover { background: #3742fa; }
+        
+        #statusMessage { text-align: center; margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>iRadio Station Manager</h1>
+
+    <!-- GitHub Setup -->
+    <div class="settings-panel">
+        <label>GitHub Setup (Stored in your browser only)</label><br>
+        <input type="text" id="repoInput" placeholder="username/repository-name (e.g., johndoe/tandberg)">
+        <input type="password" id="tokenInput" placeholder="GitHub Personal Access Token">
+        <button onclick="loadFromGitHub()" style="padding: 9px; background: #ffa502; border:none; border-radius: 4px; cursor: pointer; font-weight:bold;">Load Stations</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('DAB')">DAB</button>
+        <button class="tab-btn" onclick="switchTab('FM')">FM</button>
+        <button class="tab-btn" onclick="switchTab('LW')">LW</button>
+        <button class="tab-btn" onclick="switchTab('SW')">SW</button>
+    </div>
+
+    <!-- Station List -->
+    <h3 id="currentTabLabel">DAB Stations</h3>
+    <ul class="station-list" id="stationList">
+        <!-- Rendered via JS -->
+    </ul>
+
+    <!-- Add New Station -->
+    <div class="add-form">
+        <input type="text" id="newName" placeholder="Station Name (e.g. BBC Radio 1)">
+        <input type="text" id="newUrl" placeholder="Stream URL (http://...)">
+        <button onclick="addStation()">Add Station</button>
+    </div>
+
+    <!-- Save Button -->
+    <button class="save-btn" onclick="saveToGitHub()">Generate & Save to GitHub</button>
+    <div id="statusMessage"></div>
+</div>
+
+<script>
+    // App State
+    let radioData = { DAB: [], FM: [], LW: [], SW: [] };
+    let currentTab = 'DAB';
+    let fileSha = ''; // Required by GitHub API to update an existing file
+
+    // Load saved settings from local storage
+    document.getElementById('repoInput').value = localStorage.getItem('repoInput') || '';
+    document.getElementById('tokenInput').value = localStorage.getItem('tokenInput') || '';
+
+    // Switch Tabs
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('currentTabLabel').innerText = `${tab} Stations`;
+        renderList();
+    }
+
+    // Render the List
+    function renderList() {
+        const list = document.getElementById('stationList');
+        list.innerHTML = '';
+        
+        radioData[currentTab].forEach((station, index) => {
+            const li = document.createElement('li');
+            li.className = 'station-item';
+            li.innerHTML = `
+                <div class="station-info">
+                    <p class="station-name">${station.name}</p>
+                    <p class="station-url">${station.url}</p>
+                </div>
+                <div class="controls">
+                    <button onclick="moveUp(${index})">▲</button>
+                    <button onclick="moveDown(${index})">▼</button>
+                    <button class="btn-delete" onclick="deleteStation(${index})">X</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    // List Controls
+    function moveUp(index) {
+        if (index > 0) {
+            const temp = radioData[currentTab][index];
+            radioData[currentTab][index] = radioData[currentTab][index - 1];
+            radioData[currentTab][index - 1] = temp;
+            renderList();
+        }
+    }
+
+    function moveDown(index) {
+        if (index < radioData[currentTab].length - 1) {
+            const temp = radioData[currentTab][index];
+            radioData[currentTab][index] = radioData[currentTab][index + 1];
+            radioData[currentTab][index + 1] = temp;
+            renderList();
+        }
+    }
+
+    function deleteStation(index) {
+        radioData[currentTab].splice(index, 1);
+        renderList();
+    }
+
+    function addStation() {
+        const nameInput = document.getElementById('newName');
+        const urlInput = document.getElementById('newUrl');
+        if (nameInput.value && urlInput.value) {
+            radioData[currentTab].push({ name: nameInput.value, url: urlInput.value });
+            nameInput.value = '';
+            urlInput.value = '';
+            renderList();
+        }
+    }
+
+    // --- GitHub API Integration ---
+
+    function showStatus(message, color) {
+        const status = document.getElementById('statusMessage');
+        status.innerText = message;
+        status.style.color = color;
+    }
+
+    async function loadFromGitHub() {
+        const repo = document.getElementById('repoInput').value;
+        const token = document.getElementById('tokenInput').value;
+        
+        localStorage.setItem('repoInput', repo);
+        localStorage.setItem('tokenInput', token);
+
+        showStatus("Fetching data from GitHub...", "#ffa502");
+
+        try {
+            const response = await fetch(`https://api.github.com/repos/${repo}/contents/stations.json`, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+
+            if (!response.ok) throw new Error("Could not find file. Check Repo Name and Token.");
+
+            const data = await response.json();
+            fileSha = data.sha; // Save the SHA to update it later
+
+            // Decode the Base64 content from GitHub
+            const decodedContent = decodeURIComponent(escape(atob(data.content)));
+            radioData = JSON.parse(decodedContent);
+            
+            // Ensure all arrays exist even if empty
+            if(!radioData.DAB) radioData.DAB = [];
+            if(!radioData.FM) radioData.FM = [];
+            if(!radioData.LW) radioData.LW = [];
+            if(!radioData.SW) radioData.SW = [];
+
+            renderList();
+            showStatus("Stations loaded successfully!", "#2ed573");
+        } catch (error) {
+            showStatus(error.message, "#ff4757");
+        }
+    }
+
+    async function saveToGitHub() {
+        const repo = document.getElementById('repoInput').value;
+        const token = document.getElementById('tokenInput').value;
+
+        if (!fileSha) {
+            showStatus("Error: You must 'Load' the file from GitHub before saving.", "#ff4757");
+            return;
+        }
+
+        showStatus("Saving to GitHub...", "#1e90ff");
+
+        // Format data properly and encode for GitHub API (Base64)
+        const jsonString = JSON.stringify(radioData, null, 2);
+        const encodedContent = btoa(unescape(encodeURIComponent(jsonString)));
+
+        const bodyData = {
+            message: "Update stations.json via iRadio App",
+            content: encodedContent,
+            sha: fileSha
+        };
+
+        try {
+            const response = await fetch(`https://api.github.com/repos/${repo}/contents/stations.json`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bodyData)
+            });
+
+            if (!response.ok) throw new Error("Failed to save. Check Token permissions.");
+
+            const data = await response.json();
+            fileSha = data.content.sha; // Update the SHA for the next time they click save
+            
+            showStatus("Success! Stations saved to GitHub.", "#2ed573");
+        } catch (error) {
+            showStatus(error.message, "#ff4757");
+        }
+    }
+</script>
+</body>
+</html>
