@@ -12,29 +12,33 @@
         .settings-panel { background: #2f3542; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
         .settings-panel input { width: calc(50% - 22px); padding: 8px; margin: 5px; background: #121212; border: 1px solid #57606f; color: white; border-radius: 4px; }
         
-        .tabs { display: flex; justify-content: center; margin-bottom: 20px; }
-        .tab-btn { background: #2f3542; color: white; border: none; padding: 10px 30px; margin: 0 5px; cursor: pointer; border-radius: 4px; font-size: 16px; font-weight: bold; }
+        .tabs { display: flex; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;}
+        .tab-btn { background: #2f3542; color: white; border: none; padding: 10px 25px; cursor: pointer; border-radius: 4px; font-size: 16px; font-weight: bold; }
         .tab-btn.active { background: #ff4757; }
         
-        .station-list { list-style: none; padding: 0; }
+        .station-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #57606f; padding-bottom: 10px; margin-bottom: 15px; }
+        .station-count { color: #a4b0be; font-size: 14px; }
+        
+        .station-list { list-style: none; padding: 0; margin: 0; }
         .station-item { background: #2f3542; margin-bottom: 10px; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
-        .station-info { flex-grow: 1; }
+        .station-info { flex-grow: 1; padding-right: 15px; overflow: hidden; }
         .station-name { font-size: 18px; font-weight: bold; color: #1e90ff; margin: 0 0 5px 0; }
         .station-url { font-size: 12px; color: #a4b0be; margin: 0; word-break: break-all; }
         
-        .controls button { background: #57606f; color: white; border: none; padding: 8px 12px; margin-left: 5px; cursor: pointer; border-radius: 4px; }
+        .controls { display: flex; gap: 5px; flex-shrink: 0; }
+        .controls button { background: #57606f; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .controls button:hover { background: #747d8c; }
         .controls .btn-delete { background: #ff4757; }
         .controls .btn-delete:hover { background: #ff6b81; }
 
-        .add-form { display: flex; gap: 10px; margin-top: 20px; }
-        .add-form input { flex-grow: 1; padding: 10px; background: #121212; border: 1px solid #57606f; color: white; border-radius: 4px; }
+        .add-form { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .add-form input { flex-grow: 1; padding: 10px; background: #121212; border: 1px solid #57606f; color: white; border-radius: 4px; min-width: 200px; }
         .add-form button { background: #2ed573; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; }
 
         .save-btn { display: block; width: 100%; background: #1e90ff; color: white; border: none; padding: 15px; font-size: 18px; font-weight: bold; margin-top: 30px; cursor: pointer; border-radius: 6px; }
         .save-btn:hover { background: #3742fa; }
         
-        #statusMessage { text-align: center; margin-top: 15px; font-weight: bold; }
+        #statusMessage { text-align: center; margin-top: 15px; font-weight: bold; padding: 10px; border-radius: 4px; display: none; }
     </style>
 </head>
 <body>
@@ -44,30 +48,33 @@
 
     <!-- GitHub Setup -->
     <div class="settings-panel">
-        <label>GitHub Setup (Stored in your browser only)</label><br>
+        <label>GitHub Setup (Stored locally in your browser)</label><br>
         <input type="text" id="repoInput" placeholder="username/repository-name (e.g., johndoe/tandberg)">
         <input type="password" id="tokenInput" placeholder="GitHub Personal Access Token">
-        <button onclick="loadFromGitHub()" style="padding: 9px; background: #ffa502; border:none; border-radius: 4px; cursor: pointer; font-weight:bold;">Load Stations</button>
+        <button onclick="loadFromGitHub()" style="padding: 9px; background: #ffa502; border:none; border-radius: 4px; cursor: pointer; font-weight:bold; color:black;">Load Stations</button>
     </div>
 
     <!-- Tabs -->
     <div class="tabs">
-        <!-- [FIXED] Passed 'this' so the JS knows exactly which button was clicked -->
-        <button class="tab-btn active" onclick="switchTab(this, 'DAB')">DAB</button>
-        <button class="tab-btn" onclick="switchTab(this, 'FM')">FM</button>
+        <button class="tab-btn active" onclick="switchTab(this, 'FM')">FM</button>
+        <button class="tab-btn" onclick="switchTab(this, 'AM')">AM</button>
         <button class="tab-btn" onclick="switchTab(this, 'LW')">LW</button>
         <button class="tab-btn" onclick="switchTab(this, 'SW')">SW</button>
     </div>
 
-    <!-- Station List -->
-    <h3 id="currentTabLabel">DAB Stations</h3>
+    <!-- Station List Area -->
+    <div class="station-header">
+        <h3 id="currentTabLabel" style="margin: 0;">FM Stations</h3>
+        <span class="station-count" id="stationCount">0 / 20 Stations</span>
+    </div>
+    
     <ul class="station-list" id="stationList">
         <!-- Rendered via JS -->
     </ul>
 
     <!-- Add New Station -->
     <div class="add-form">
-        <input type="text" id="newName" placeholder="Station Name (e.g. BBC Radio 1)">
+        <input type="text" id="newName" placeholder="Station Name (e.g. Classic FM)">
         <input type="text" id="newUrl" placeholder="Stream URL (http://...)">
         <button onclick="addStation()">Add Station</button>
     </div>
@@ -78,16 +85,15 @@
 </div>
 
 <script>
-    // App State
-    let radioData = { DAB: [], FM: [], LW: [], SW: [] };
-    let currentTab = 'DAB';
+    // App State (No DAB)
+    let radioData = { FM: [], AM: [], LW: [], SW: [] };
+    let currentTab = 'FM';
     let fileSha = ''; 
+    const MAX_STATIONS = 20;
 
-    // Load saved settings from local storage
     document.getElementById('repoInput').value = localStorage.getItem('repoInput') || '';
     document.getElementById('tokenInput').value = localStorage.getItem('tokenInput') || '';
 
-    // Switch Tabs [FIXED: Uses passed button reference]
     function switchTab(btnElement, tab) {
         currentTab = tab;
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -96,11 +102,20 @@
         renderList();
     }
 
-    // Render the List
     function renderList() {
         const list = document.getElementById('stationList');
         list.innerHTML = '';
         
+        const count = radioData[currentTab].length;
+        const countDisplay = document.getElementById('stationCount');
+        countDisplay.innerText = `${count} / ${MAX_STATIONS} Stations`;
+        countDisplay.style.color = count >= MAX_STATIONS ? '#ff4757' : '#a4b0be';
+        
+        if (count === 0) {
+            list.innerHTML = '<p style="text-align:center; color:#57606f;">No stations configured for this button yet.</p>';
+            return;
+        }
+
         radioData[currentTab].forEach((station, index) => {
             const li = document.createElement('li');
             li.className = 'station-item';
@@ -110,16 +125,15 @@
                     <p class="station-url">${station.url}</p>
                 </div>
                 <div class="controls">
-                    <button onclick="moveUp(${index})">▲</button>
-                    <button onclick="moveDown(${index})">▼</button>
-                    <button class="btn-delete" onclick="deleteStation(${index})">X</button>
+                    <button onclick="moveUp(${index})" title="Move Up">▲</button>
+                    <button onclick="moveDown(${index})" title="Move Down">▼</button>
+                    <button class="btn-delete" onclick="deleteStation(${index})" title="Delete">X</button>
                 </div>
             `;
             list.appendChild(li);
         });
     }
 
-    // List Controls
     function moveUp(index) {
         if (index > 0) {
             const temp = radioData[currentTab][index];
@@ -144,27 +158,45 @@
     }
 
     function addStation() {
-        const nameInput = document.getElementById('newName');
-        const urlInput = document.getElementById('newUrl');
-        if (nameInput.value && urlInput.value) {
-            radioData[currentTab].push({ name: nameInput.value, url: urlInput.value });
-            nameInput.value = '';
-            urlInput.value = '';
-            renderList();
+        if (radioData[currentTab].length >= MAX_STATIONS) {
+            alert(`You have reached the maximum limit of ${MAX_STATIONS} stations for the ${currentTab} button.\nPlease delete an existing station first.`);
+            return;
+        }
+
+        const nameInput = document.getElementById('newName').value.trim();
+        let urlInput = document.getElementById('newUrl').value.trim();
+
+        if (!nameInput || !urlInput) {
+            alert("Please enter both a station name and a valid URL.");
+            return;
+        }
+
+        if (!urlInput.toLowerCase().startsWith('http')) {
+            urlInput = 'http://' + urlInput;
+        }
+
+        radioData[currentTab].push({ name: nameInput, url: urlInput });
+        
+        document.getElementById('newName').value = '';
+        document.getElementById('newUrl').value = '';
+        renderList();
+    }
+
+    function showStatus(message, bgColor, textColor = 'white') {
+        const status = document.getElementById('statusMessage');
+        status.innerText = message;
+        status.style.backgroundColor = bgColor;
+        status.style.color = textColor;
+        status.style.display = 'block';
+        
+        if (bgColor === '#2ed573') {
+            setTimeout(() => { status.style.display = 'none'; }, 4000);
         }
     }
 
-    // --- GitHub API Integration ---
-
-    function showStatus(message, color) {
-        const status = document.getElementById('statusMessage');
-        status.innerText = message;
-        status.style.color = color;
-    }
-
     async function loadFromGitHub() {
-        const repo = document.getElementById('repoInput').value;
-        const token = document.getElementById('tokenInput').value;
+        const repo = document.getElementById('repoInput').value.trim();
+        const token = document.getElementById('tokenInput').value.trim();
         
         if (!repo || !token) {
             showStatus("Please enter Repo Name and Token.", "#ff4757");
@@ -174,10 +206,11 @@
         localStorage.setItem('repoInput', repo);
         localStorage.setItem('tokenInput', token);
 
-        showStatus("Fetching data from GitHub...", "#ffa502");
+        showStatus("Fetching data from GitHub...", "#ffa502", "black");
 
         try {
-            const response = await fetch(`https://api.github.com/repos/${repo}/contents/stations.json`, {
+            const cacheBuster = new Date().getTime();
+            const response = await fetch(`https://api.github.com/repos/${repo}/contents/stations.json?t=${cacheBuster}`, {
                 headers: { 'Authorization': `token ${token}` }
             });
 
@@ -186,8 +219,7 @@
             const data = await response.json();
             fileSha = data.sha; 
 
-            // [FIXED] Bulletproof UTF-8 decoding + stripped newlines
-            const cleanBase64 = data.content.replace(/\s/g, ''); // Strip GitHub's line breaks
+            const cleanBase64 = data.content.replace(/\s/g, ''); 
             const binaryString = atob(cleanBase64);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) {
@@ -197,9 +229,8 @@
             
             radioData = JSON.parse(decodedContent);
             
-            // Ensure all arrays exist even if empty
-            if(!radioData.DAB) radioData.DAB = [];
             if(!radioData.FM) radioData.FM = [];
+            if(!radioData.AM) radioData.AM = [];
             if(!radioData.LW) radioData.LW = [];
             if(!radioData.SW) radioData.SW = [];
 
@@ -211,20 +242,18 @@
     }
 
     async function saveToGitHub() {
-        const repo = document.getElementById('repoInput').value;
-        const token = document.getElementById('tokenInput').value;
+        const repo = document.getElementById('repoInput').value.trim();
+        const token = document.getElementById('tokenInput').value.trim();
 
         if (!fileSha) {
-            showStatus("Error: You must 'Load' the file from GitHub before saving.", "#ff4757");
+            showStatus("Error: You must 'Load Stations' first before saving.", "#ff4757");
             return;
         }
 
         showStatus("Saving to GitHub...", "#1e90ff");
 
-        // Format data properly to JSON
         const jsonString = JSON.stringify(radioData, null, 2);
 
-        // [FIXED] Bulletproof UTF-8 encoding to Base64
         const bytes = new TextEncoder().encode(jsonString);
         let binaryString = "";
         for (let i = 0; i < bytes.byteLength; i++) {
