@@ -52,10 +52,11 @@
 
     <!-- Tabs -->
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('DAB')">DAB</button>
-        <button class="tab-btn" onclick="switchTab('FM')">FM</button>
-        <button class="tab-btn" onclick="switchTab('LW')">LW</button>
-        <button class="tab-btn" onclick="switchTab('SW')">SW</button>
+        <!-- [FIXED] Passed 'this' so the JS knows exactly which button was clicked -->
+        <button class="tab-btn active" onclick="switchTab(this, 'DAB')">DAB</button>
+        <button class="tab-btn" onclick="switchTab(this, 'FM')">FM</button>
+        <button class="tab-btn" onclick="switchTab(this, 'LW')">LW</button>
+        <button class="tab-btn" onclick="switchTab(this, 'SW')">SW</button>
     </div>
 
     <!-- Station List -->
@@ -80,17 +81,17 @@
     // App State
     let radioData = { DAB: [], FM: [], LW: [], SW: [] };
     let currentTab = 'DAB';
-    let fileSha = ''; // Required by GitHub API to update an existing file
+    let fileSha = ''; 
 
     // Load saved settings from local storage
     document.getElementById('repoInput').value = localStorage.getItem('repoInput') || '';
     document.getElementById('tokenInput').value = localStorage.getItem('tokenInput') || '';
 
-    // Switch Tabs
-    function switchTab(tab) {
+    // Switch Tabs [FIXED: Uses passed button reference]
+    function switchTab(btnElement, tab) {
         currentTab = tab;
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
+        btnElement.classList.add('active');
         document.getElementById('currentTabLabel').innerText = `${tab} Stations`;
         renderList();
     }
@@ -165,6 +166,11 @@
         const repo = document.getElementById('repoInput').value;
         const token = document.getElementById('tokenInput').value;
         
+        if (!repo || !token) {
+            showStatus("Please enter Repo Name and Token.", "#ff4757");
+            return;
+        }
+
         localStorage.setItem('repoInput', repo);
         localStorage.setItem('tokenInput', token);
 
@@ -178,10 +184,17 @@
             if (!response.ok) throw new Error("Could not find file. Check Repo Name and Token.");
 
             const data = await response.json();
-            fileSha = data.sha; // Save the SHA to update it later
+            fileSha = data.sha; 
 
-            // Decode the Base64 content from GitHub
-            const decodedContent = decodeURIComponent(escape(atob(data.content)));
+            // [FIXED] Bulletproof UTF-8 decoding + stripped newlines
+            const cleanBase64 = data.content.replace(/\s/g, ''); // Strip GitHub's line breaks
+            const binaryString = atob(cleanBase64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            const decodedContent = new TextDecoder('utf-8').decode(bytes);
+            
             radioData = JSON.parse(decodedContent);
             
             // Ensure all arrays exist even if empty
@@ -208,9 +221,16 @@
 
         showStatus("Saving to GitHub...", "#1e90ff");
 
-        // Format data properly and encode for GitHub API (Base64)
+        // Format data properly to JSON
         const jsonString = JSON.stringify(radioData, null, 2);
-        const encodedContent = btoa(unescape(encodeURIComponent(jsonString)));
+
+        // [FIXED] Bulletproof UTF-8 encoding to Base64
+        const bytes = new TextEncoder().encode(jsonString);
+        let binaryString = "";
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binaryString += String.fromCharCode(bytes[i]);
+        }
+        const encodedContent = btoa(binaryString);
 
         const bodyData = {
             message: "Update stations.json via iRadio App",
@@ -231,7 +251,7 @@
             if (!response.ok) throw new Error("Failed to save. Check Token permissions.");
 
             const data = await response.json();
-            fileSha = data.content.sha; // Update the SHA for the next time they click save
+            fileSha = data.content.sha; 
             
             showStatus("Success! Stations saved to GitHub.", "#2ed573");
         } catch (error) {
