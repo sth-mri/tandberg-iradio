@@ -1,0 +1,90 @@
+{
+  "FM": [
+    {
+      "name": "BBC Radio 1",
+      "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_one"
+    },
+    {
+      "name": "BBC Radio 2",
+      "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_two"
+    },
+    {
+      "name": "BBC Radio 3",
+      "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_three"
+    },
+    {
+      "name": "BBC Radio 4",
+      "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_fourfm"
+    },
+    {
+      "name": "BBC Radio 6",
+      "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_6music"
+    }
+  ],
+  "AM": [
+    {
+      "name": "France Bleu Azur",
+      "url": "http://icecast.radiofrance.fr/fbazur-midfi.mp3"
+    },
+    {
+      "name": "Kiss FM (Nice)",
+      "url": "http://kissfm.ice.infomaniak.ch/kissfm-high.mp3"
+    },
+    {
+      "name": "Radio Emotion",
+      "url": "http://emotion.ice.infomaniak.ch/emotion-high.mp3"
+    },
+    {
+      "name": "Cannes Radio",
+      "url": "http://cannesradio.ice.infomaniak.ch/cannesradio-high.mp3"
+    }
+  ],
+  "LW": [
+    {
+      "name": "Radio Caroline",
+      "url": "http://sc3.radiocaroline.net:8030/"
+    },
+    {
+      "name": "NPO Radio 1 (NL)",
+      "url": "http://icecast.omroep.nl/radio1-bb-mp3"
+    },
+    {
+      "name": "NPO Radio 5 (NL)",
+      "url": "http://icecast.omroep.nl/radio5-bb-mp3"
+    },
+    {
+      "name": "NRK P1 (NO)",
+      "url": "http://lyd.nrk.no/nrk_radio_p1_hordaland_mp3_h"
+    },
+    {
+      "name": "NRK P2 (NO)",
+      "url": "http://lyd.nrk.no/nrk_radio_p2_mp3_h"
+    }
+  ],
+  "SW": [
+    {
+      "name": "BBC World Service",
+      "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_world_service"
+    },
+    {
+      "name": "RFI Monde",
+      "url": "http://live02.rfi.fr/rfimonde-96k.mp3"
+    },
+    {
+      "name": "VOA News",
+      "url": "http://voa-pba.leanstream.co/VOANews-mp3"
+    },
+    {
+      "name": "RNZ Pacific",
+      "url": "http://radionz-ice.streamguys.com/international_vbr"
+    },
+    {
+      "name": "WRMI Miami Int",
+      "url": "http://192.111.140.6:8559/stream"
+    },
+    {
+      "name": "World Radio Swiss",
+      "url": "http://stream.infomaniak.ch/wrs.mp3"
+    }
+  ]
+}
