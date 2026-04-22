@@ -19,6 +19,14 @@
     {
       "name": "BBC Radio 6",
       "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_6music"
+    },
+    {
+      "name": "Radio Caroline",
+      "url": "http://sc3.radiocaroline.net:8040/"
+    },
+    {
+      "name": "Radio Caroline Oldies",
+      "url": "http://sc3.radiocaroline.net:8090/"
     }
   ],
   "AM": [
